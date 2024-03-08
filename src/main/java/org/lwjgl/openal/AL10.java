@@ -9,6 +9,7 @@ import javax.annotation.*;
 
 import java.nio.*;
 
+import org.jetbrains.annotations.Nullable;
 import org.lwjgl.system.*;
 
 import static org.lwjgl.system.Checks.*;

@@ -4,10 +4,10 @@
  */
 package org.lwjgl.openal;
 
+import org.jetbrains.annotations.Nullable;
 import org.lwjgl.*;
 import org.lwjgl.system.*;
 
-import javax.annotation.*;
 import java.nio.*;
 import java.util.*;
 
@@ -265,7 +265,7 @@ public final class AL {
                 supportedExtensions.add("ALC_EXT_EFX");
             }
 
-            return caps = new ALCapabilities(functionProvider, supportedExtensions);
+            return caps = new ALCapabilities(functionProvider, supportedExtensions, PointerBuffer::allocateDirect);
         } finally {
             if (alcCaps.ALC_EXT_thread_local_context && alcGetThreadContext() != NULL) {
                 setCurrentThread(caps);

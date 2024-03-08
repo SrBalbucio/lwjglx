@@ -5,7 +5,7 @@
  */
 package org.lwjgl.opengl;
 
-import javax.annotation.*;
+import org.jetbrains.annotations.Nullable;
 
 import java.nio.*;
 
