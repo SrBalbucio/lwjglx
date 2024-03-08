@@ -13,13 +13,15 @@ import java.nio.IntBuffer;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.glfw.*;
 import org.lwjgl.LWJGLUtil;
+import org.lwjgl.input.GLFWInputImplementation;
+import org.lwjgl.input.KeyCodes;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.system.MemoryUtil;
+import org.lwjgl.LWJGLException;
 import org.lwjgl.Sys;
 import org.lwjgl.input.Cursor;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
-import org.lwjgl.LWJGLException;
 
 public class Display {
 
@@ -59,7 +61,7 @@ public class Display {
     private static boolean window_created;
 
     /** The Drawable instance that tracks the current Display context */
-    private static DrawableLWJGL drawable;
+    private static volatile DrawableLWJGL drawable = null;
     
     private static Canvas parent;
 
@@ -80,12 +82,7 @@ public class Display {
 
         mode = desktopDisplayMode = new DisplayMode(monitorWidth, monitorHeight, monitorBitPerPixel, monitorRefreshRate);
         LWJGLUtil.log("Initial mode: " + desktopDisplayMode);
-
-        // additional code workaround not called yet!
-        LWJGLUtil.log("Calling Display.create()");
-        try {
-            create();
-        } catch (LWJGLException e) {throw new RuntimeException(e);}
+        if("opengles2".equals(System.getenv("POJAV_RENDERER"))) GLContext.initCapabilities();
     }
     
     public static void setSwapInterval(int value) {
@@ -96,7 +93,7 @@ public class Display {
                 
             }
         }
-	}
+    }
     
     private static void makeCurrentAndSetSwapInterval() throws LWJGLException {
         makeCurrent();
@@ -111,7 +108,7 @@ public class Display {
     private static void initContext() {
         drawable.initContext(0, 0, 0);
         update();
-	}
+    }
     
     private static void initControls() {
         // Automatically create mouse, keyboard and controller
@@ -139,7 +136,7 @@ public class Display {
                 }
             }
         }
-	}
+    }
     
     private static void releaseDrawable() {
         try {
@@ -151,7 +148,7 @@ public class Display {
         } catch (LWJGLException e) {
             LWJGLUtil.log("Exception occurred while trying to release context: " + e);
         }
-	}
+    }
     
     private static void destroyWindow() {
         if ( !window_created ) {
@@ -168,11 +165,11 @@ public class Display {
         }
         display_impl.destroyWindow();
         window_created = false;
-	}
+    }
     
     private static void reset() {
         display_impl.resetDisplayMode();
-	}
+    }
     
     private static void createWindow() throws LWJGLException {
         if ( window_created ) {
@@ -198,36 +195,19 @@ public class Display {
         */
         
         setIcon(new ByteBuffer[] { LWJGLUtil.LWJGLIcon32x32, LWJGLUtil.LWJGLIcon16x16 });
-	}
+    }
     
     public static void create(PixelFormat pixel_format, Drawable shared_drawable) throws LWJGLException {
         // System.out.println("TODO: Implement Display.create(PixelFormat,
         // Drawable)"); // TODO
         create(pixel_format);
-        
-        final DrawableGL drawable = new DrawableGL() {
-            public void destroy() {
-                synchronized ( GlobalLock.lock ) {
-                    if ( !isCreated() )
-                        return;
-
-                    releaseDrawable();
-                    super.destroy();
-                    destroyWindow();
-                    // x = y = -1;
-                    // cached_icons = null;
-                    reset();
-                }
-            }
-        };
-        Display.drawable = drawable;
 
         try {
             drawable.setPixelFormat(pixel_format, null);
             try {
                 createWindow();
                 try {
-                    drawable.context = new ContextGL(drawable.peer_info, null /* attribs */, shared_drawable != null ? ((DrawableGL)shared_drawable).getContext() : null);
+                    ((DrawableGL) drawable).context = new ContextGL(((DrawableGL) drawable).peer_info, null /* attribs */, shared_drawable != null ? ((DrawableGL)shared_drawable).getContext() : null);
                     try {
                         makeCurrentAndSetSwapInterval();
                         initContext();
@@ -302,35 +282,37 @@ public class Display {
                 // false);
                 // }
 
-                Keyboard.addKeyEvent(key, action);
+                GLFWInputImplementation.singleton.putKeyboardEvent(KeyCodes.toLwjglKey(key),(byte)action,0,Sys.getNanoTime(),false);
             }
         };
 
         Window.charCallback = new GLFWCharCallback() {
             @Override
             public void invoke(long window, int codepoint) {
-                Keyboard.addCharEvent(latestEventKey, (char) codepoint);
+                GLFWInputImplementation.singleton.putKeyboardEvent(0,(byte)1,(int)codepoint,Sys.getNanoTime(),false);
+                //GLFWInputImplementation.singleton.putKeyboardEvent(0,(byte)0,(int)codepoint,Sys.getNanoTime(),false);
             }
         };
 
         Window.cursorEnterCallback = new GLFWCursorEnterCallback() {
             @Override
             public void invoke(long window, boolean entered) {
-                Mouse.setMouseInsideWindow(entered == true);
+
+
             }
         };
 
         Window.cursorPosCallback = new GLFWCursorPosCallback() {
             @Override
             public void invoke(long window, double xpos, double ypos) {
-                Mouse.addMoveEvent(xpos, ypos);
+                GLFWInputImplementation.singleton.putMouseEventWithCoords((byte)-1, (byte)0,(int)xpos,(int)((ypos - Display.getHeight())*-1),0,Sys.getNanoTime());
             }
         };
 
         Window.mouseButtonCallback = new GLFWMouseButtonCallback() {
             @Override
             public void invoke(long window, int button, int action, int mods) {
-                Mouse.addButtonEvent(button, action == GLFW.GLFW_PRESS ? true : false);
+                GLFWInputImplementation.singleton.putMouseEventWithCoords((byte)button,(byte)action,-1,-1,0,Sys.getNanoTime());
             }
         };
 
@@ -354,6 +336,9 @@ public class Display {
                 latestResized = true;
                 latestWidth = width;
                 latestHeight = height;
+
+                //System.out.println("Window size callback");
+                if(parent != null) parent.setSize(width, height);
             }
         };
 
@@ -383,7 +368,8 @@ public class Display {
         Window.scrollCallback = new GLFWScrollCallback() {
             @Override
             public void invoke(long window, double xoffset, double yoffset) {
-                Mouse.addWheelEvent((int) (yoffset * 120));
+              //  Mouse.addWheelEvent((int) (yoffset * 120));
+                GLFWInputImplementation.singleton.putMouseEventWithCoords((byte)-1,(byte)0,-1,-1,(int)(yoffset*120),Sys.getNanoTime());
             }
         };
 
@@ -408,12 +394,31 @@ public class Display {
             displayY = (monitorHeight - mode.getHeight()) / 2;
         }
 
-        glfwMakeContextCurrent(Window.handle);
+        //glfwMakeContextCurrent(Window.handle);
+        final DrawableGL drawable = new DrawableGL() {
+            public void destroy() {
+                synchronized ( GlobalLock.lock ) {
+                    if ( !isCreated() )
+                        return;
+
+                    releaseDrawable();
+                    super.destroy();
+                    destroyWindow();
+                    // x = y = -1;
+                    // cached_icons = null;
+                    reset();
+                }
+            }
+        };
+        drawable.context = new ContextGL(Window.handle);
+        drawable.context.makeCurrent();
+        Display.drawable = drawable;
         context = org.lwjgl.opengl.GLContext.createFromCurrent();
 
-        glfwSwapInterval(0);
+        //glfwSwapInterval(0);
         glfwShowWindow(Window.handle);
 
+        if(parent != null) parent.setSize(displayWidth, displayHeight);
         Mouse.create();
         Keyboard.create();
 
@@ -727,12 +732,13 @@ public class Display {
             }
         };
 
+
         displayCreated = true;
 
     }
 
     public static boolean isCreated() {
-        return displayCreated;
+        return true;
     }
 
     public static boolean isActive() {
@@ -758,6 +764,7 @@ public class Display {
 
     public static void setVSyncEnabled(boolean sync) {
         vsyncEnabled = sync;
+        glfwSwapInterval(vsyncEnabled ? 1 : 0);
     }
 
     public static long getWindow() {
@@ -833,7 +840,7 @@ public class Display {
             }
             */
         }
-	}
+    }
     
     public static void swapBuffers() throws LWJGLException {
         glfwSwapBuffers(Window.handle);
@@ -848,7 +855,7 @@ public class Display {
 
     public static void setDisplayMode(DisplayMode dm) throws LWJGLException {
         mode = dm;
-        newCurrentWindow(GLFW.glfwCreateWindow(dm.getWidth(), dm.getHeight(), windowTitle, 0, 0));
+        if(isCreated) GLFW.glfwSetWindowSize(Window.handle, dm.getWidth(), dm.getHeight());
     }
 
     public static DisplayMode getDisplayMode() {
@@ -913,6 +920,8 @@ public class Display {
         windowTitle = title;
     }
 
+    public static String getTitle() { return windowTitle; }    
+
     public static boolean isCloseRequested() {
         return glfwWindowShouldClose(Window.handle) == true;
     }
@@ -938,7 +947,7 @@ public class Display {
             } else {
                 glfwSetWindowIcon(Window.handle, new GLFWImage.Buffer(icons[0]));
             }
-        } catch (NullPointerException e) {
+        } catch (Exception e) {
             LWJGLUtil.log("Couldn't set icon");
             e.printStackTrace();
         }
@@ -946,7 +955,7 @@ public class Display {
     }
 
     public static void setResizable(boolean resizable) {
-        displayResizable = resizable;
+        //displayResizable = resizable;
         if (displayResizable ^ resizable) {
             if (Window.handle != 0) {
                 IntBuffer width = BufferUtils.createIntBuffer(1);
@@ -960,8 +969,7 @@ public class Display {
                 glfwWindowHint(GLFW_RESIZABLE, displayResizable ? GL_TRUE : GL_FALSE);
                 glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
 
-                newCurrentWindow(GLFW.glfwCreateWindow(width.get(), height.get(), windowTitle,
-                                                       GLFW.glfwGetWindowMonitor(Window.handle), NULL));
+                GLFW.glfwSetWindowSize(Window.handle, width.get(), height.get());
             }
         }
         displayResizable = resizable;
@@ -971,10 +979,11 @@ public class Display {
         return displayResizable;
     }
 
-    public static void setDisplayModeAndFullscreen(DisplayMode mode) throws LWJGLException {
-        Display.mode = mode;
-        newCurrentWindow(glfwCreateWindow(mode.getWidth(), mode.getHeight(), windowTitle,
-                                          mode.isFullscreenCapable() ? glfwGetPrimaryMonitor() : NULL, NULL));
+    public static void setDisplayModeAndFullscreen(DisplayMode dm) throws LWJGLException {
+        if(Window.handle != 0) {
+            Display.mode = dm;
+            GLFW.glfwSetWindowSize(Window.handle, dm.getWidth(), dm.getHeight());
+        }
     }
 
     public static void setFullscreen(boolean fullscreen) throws LWJGLException {
@@ -994,11 +1003,7 @@ public class Display {
                 glfwWindowHint(GLFW_RESIZABLE, displayResizable ? GL_TRUE : GL_FALSE);
                 glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
 
-                if (fullscreen)
-                    newCurrentWindow(glfwCreateWindow(width.get(), height.get(), windowTitle,
-                                                      glfwGetPrimaryMonitor(), NULL));
-                else
-                    newCurrentWindow(glfwCreateWindow(width.get(), height.get(), windowTitle, NULL, NULL));
+                GLFW.glfwSetWindowSize(Window.handle, width.get(), height.get());
             }
         }
         displayFullscreen = fullscreen;
@@ -1022,6 +1027,10 @@ public class Display {
         }
     }
 
+    public static void setDisplayConfiguration(float gamma, float brightness, float contrast) throws LWJGLException {
+        // ignore call, this is required for a1.1.1
+    }
+
     public static java.lang.String getAdapter() {
         // TODO
         return "GeNotSupportedAdapter";
@@ -1040,36 +1049,17 @@ public class Display {
      *            - the desired frame rate, in frames per second
      */
     public static void sync(int fps) {
-        if (vsyncEnabled)
-            Sync.sync(fps);
+        /*if (vsyncEnabled)
+            Sync.sync(60);
+        else*/ Sync.sync(fps);
     }
 
     public static Drawable getDrawable() {
         return drawable;
-	}
+    }
 
     static DisplayImplementation getImplementation() {
         return display_impl;
-    }
-
-    private static void newCurrentWindow(long newWindow) {
-        if (Window.handle != MemoryUtil.NULL)
-            glfwDestroyWindow(Window.handle);
-        Window.handle = newWindow;
-        try {
-            Mouse.setNativeCursor(Mouse.getCurrentCursor());
-        } catch (LWJGLException e) {
-            System.err.println("Failed to set new window cursor!");
-            e.printStackTrace();
-        }
-        GLFW.glfwSetWindowTitle(newWindow, windowTitle);
-        Window.setCallbacks();
-
-        // glfwMakeContextCurrent(Window.handle);
-        context = org.lwjgl.opengl.GLContext.createFromCurrent();
-
-        glfwSwapInterval(0);
-        glfwShowWindow(Window.handle);
     }
 
     static class Window {

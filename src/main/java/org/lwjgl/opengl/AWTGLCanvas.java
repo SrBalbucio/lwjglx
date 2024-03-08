@@ -42,162 +42,163 @@ import java.awt.event.HierarchyListener;
 
 public class AWTGLCanvas extends Canvas implements Drawable, ComponentListener, HierarchyListener {
 
-	private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 1L;
 
     private ContextGL mContextGL;
     private PixelFormatLWJGL mPixelFormat;
     private ContextAttribs mCtxAttrs;
     
-	public void setPixelFormat(final PixelFormatLWJGL pf) throws LWJGLException {
-		mPixelFormat = pf;
-	}
+    public void setPixelFormat(final PixelFormatLWJGL pf) throws LWJGLException {
+        mPixelFormat = pf;
+    }
 
-	public void setPixelFormat(final PixelFormatLWJGL pf, final ContextAttribs attribs) throws LWJGLException {
-	    mPixelFormat = pf;
+    public void setPixelFormat(final PixelFormatLWJGL pf, final ContextAttribs attribs) throws LWJGLException {
+        mPixelFormat = pf;
         mCtxAttrs = attribs;
-	}
+    }
 
-	public PixelFormatLWJGL getPixelFormat() {
-		return mPixelFormat;
-	}
+    public PixelFormatLWJGL getPixelFormat() {
+        return mPixelFormat;
+    }
 
-	public ContextGL getContext() {
-		return mContextGL;
-	}
+    public ContextGL getContext() {
+        return mContextGL;
+    }
 
-	public ContextGL createSharedContext() throws LWJGLException {
+    public ContextGL createSharedContext() throws LWJGLException {
         mContextGL = new ContextGL(getContext().getPeerInfo(), mCtxAttrs, null);
-		return mContextGL;
-	}
+        return mContextGL;
+    }
 
-	public void checkGLError() {
-		// GL11.glGetError();
-	}
+    public void checkGLError() {
+        // GL11.glGetError();
+    }
 
-	public void initContext(final float r, final float g, final float b) {
-		Display.setInitialBackground(r, g, b);
-	}
+    public void initContext(final float r, final float g, final float b) {
+        Display.setInitialBackground(r, g, b);
+    }
 
-	public AWTGLCanvas() throws LWJGLException {
-		Display.create();
-	}
+    public AWTGLCanvas() throws LWJGLException {
+        System.out.println("AWTGLCanvas constructor called on thread:"+Thread.currentThread().getName());
+        //Display.create();
+    }
 
-	public AWTGLCanvas(PixelFormat pixel_format) throws LWJGLException {
-		Display.create(pixel_format);
-	}
+    public AWTGLCanvas(PixelFormat pixel_format) throws LWJGLException {
+        Display.create(pixel_format);
+    }
 
-	public AWTGLCanvas(GraphicsDevice device, PixelFormat pixel_format) throws LWJGLException {
-		this(pixel_format);
-	}
+    public AWTGLCanvas(GraphicsDevice device, PixelFormat pixel_format) throws LWJGLException {
+        this(pixel_format);
+    }
 
-	public AWTGLCanvas(GraphicsDevice device, PixelFormat pixel_format, Drawable drawable) throws LWJGLException {
-		this(pixel_format);
-	}
+    public AWTGLCanvas(GraphicsDevice device, PixelFormat pixel_format, Drawable drawable) throws LWJGLException {
+        this(pixel_format);
+    }
 
-	public AWTGLCanvas(GraphicsDevice device, PixelFormat pixel_format, Drawable drawable, ContextAttribs attribs) throws LWJGLException {
-		this(pixel_format);
-	}
+    public AWTGLCanvas(GraphicsDevice device, PixelFormat pixel_format, Drawable drawable, ContextAttribs attribs) throws LWJGLException {
+        this(pixel_format);
+    }
 
-	public void addNotify() {
-		
-	}
+    public void addNotify() {
+        
+    }
 
-	public void removeNotify() {
-		
-	}
+    public void removeNotify() {
+        
+    }
 
-	public void setSwapInterval(int swap_interval) {
-		mContextGL.setSwapInterval(swap_interval);
-	}
+    public void setSwapInterval(int swap_interval) {
+        mContextGL.setSwapInterval(swap_interval);
+    }
 
-	public void setVSyncEnabled(boolean enabled) {
-		mContextGL.setSwapInterval(enabled ? 1 : 0);
-	}
+    public void setVSyncEnabled(boolean enabled) {
+        mContextGL.setSwapInterval(enabled ? 1 : 0);
+    }
 
-	public void swapBuffers() throws LWJGLException {
-		mContextGL.swapBuffers();
-	}
+    public void swapBuffers() throws LWJGLException {
+        mContextGL.swapBuffers();
+    }
 
-	public boolean isCurrent() throws LWJGLException {
-		return mContextGL.isCurrent();
-	}
+    public boolean isCurrent() throws LWJGLException {
+        return mContextGL.isCurrent();
+    }
 
-	public void makeCurrent() throws LWJGLException {
-		mContextGL.makeCurrent();
-	}
+    public void makeCurrent() throws LWJGLException {
+        mContextGL.makeCurrent();
+    }
 
-	public void releaseContext() throws LWJGLException {
-		mContextGL.releaseCurrent();
-	}
+    public void releaseContext() throws LWJGLException {
+        mContextGL.releaseCurrent();
+    }
 
-	public final void destroy() {
+    public final void destroy() {
                 try {
-		    mContextGL.destroy();
+            mContextGL.destroy();
                 } catch (LWJGLException e) {throw new RuntimeException(e);}
-	}
+    }
 
-	public final void setCLSharingProperties(final PointerBuffer properties) throws LWJGLException {
-		mContextGL.setCLSharingProperties(properties);
-	}
+    public final void setCLSharingProperties(final PointerBuffer properties) throws LWJGLException {
+        mContextGL.setCLSharingProperties(properties);
+    }
 
-	protected void initGL() {
-	    
-	}
+    protected void initGL() {
+        
+    }
 
-	protected void paintGL() {
-	
-	}
+    protected void paintGL() {
+    
+    }
 
-	public final void paint(Graphics g) {
-		
-	}
+    public final void paint(Graphics g) {
+        
+    }
 
-	protected void exceptionOccurred(LWJGLException exception) {
-		
-	}
+    protected void exceptionOccurred(LWJGLException exception) {
+        
+    }
 
-	public void update(Graphics g) {
-		
-	}
+    public void update(Graphics g) {
+        
+    }
 
-	public void componentShown(ComponentEvent e) {
-	
-	}
+    public void componentShown(ComponentEvent e) {
+    
+    }
 
-	public void componentHidden(ComponentEvent e) {
-	
-	}
+    public void componentHidden(ComponentEvent e) {
+    
+    }
 
-	public void componentResized(ComponentEvent e) {
-		
-	}
+    public void componentResized(ComponentEvent e) {
+        
+    }
 
-	public void componentMoved(ComponentEvent e) {
-		
-	}
+    public void componentMoved(ComponentEvent e) {
+        
+    }
 
-	public void setLocation(int x, int y) {
-		
-	}
+    public void setLocation(int x, int y) {
+        super.setLocation(x, y);
+    }
 
-	public void setLocation(Point p) {
-		
-	}
+    public void setLocation(Point p) {
+        super.setLocation(p);
+    }
 
-	public void setSize(Dimension d) {
-		
-	}
+    public void setSize(Dimension d) {
+        super.setSize(d);
+    }
 
-	public void setSize(int width, int height) {
-		
-	}
+    public void setSize(int width, int height) {
+        super.setSize(width, height);
+    }
 
-	public void setBounds(int x, int y, int width, int height) {
-		
-	}
+    public void setBounds(int x, int y, int width, int height) {
+        super.setBounds(x, y, width, height);
+    }
 
-	public void hierarchyChanged(HierarchyEvent e) {
-		
-	}
+    public void hierarchyChanged(HierarchyEvent e) {
+
+    }
 
 }
